@@ -1,10 +1,13 @@
 /**
  * AcpAgentPicker — Agent selection and connection management UI.
  * Shows available agents, connection status, and session creation.
+ *
+ * Optimized: uses fine-grained store selectors to avoid re-rendering
+ * when unrelated state (e.g. message content) changes.
  */
 
 import { useCallback, useState } from "react";
-import { useAcpStore } from "../store";
+import { useAcpStore, useSessionList } from "../store";
 import type { AgentConfig, WorkspaceRoot } from "@/lib/acp";
 
 interface Props {
@@ -13,18 +16,18 @@ interface Props {
 }
 
 export function AcpAgentPicker({ workspaceRoot }: Props) {
-  const {
-    agents,
-    connectedAgents,
-    connecting,
-    sessions,
-    activeSessionIdx,
-    connect,
-    disconnect,
-    newSession,
-    setActiveSession,
-    removeSession,
-  } = useAcpStore();
+  // Fine-grained subscriptions — only re-render when these specific slices change
+  const agents = useAcpStore((s) => s.agents);
+  const connectedAgents = useAcpStore((s) => s.connectedAgents);
+  const connecting = useAcpStore((s) => s.connecting);
+  const connect = useAcpStore((s) => s.connect);
+  const disconnect = useAcpStore((s) => s.disconnect);
+  const newSession = useAcpStore((s) => s.newSession);
+  const setActiveSession = useAcpStore((s) => s.setActiveSession);
+  const removeSession = useAcpStore((s) => s.removeSession);
+
+  // Session list metadata (doesn't include full message arrays)
+  const { sessions, activeIdx } = useSessionList();
 
   const [error, setError] = useState<string | null>(null);
 
@@ -131,7 +134,7 @@ export function AcpAgentPicker({ workspaceRoot }: Props) {
                 key={sess.id}
                 onClick={() => setActiveSession(idx)}
                 className={`flex items-center justify-between rounded-md border px-3 py-2 cursor-pointer ${
-                  idx === activeSessionIdx
+                  idx === activeIdx
                     ? "border-primary bg-primary/5"
                     : "border-border hover:bg-muted/50"
                 }`}
@@ -139,7 +142,7 @@ export function AcpAgentPicker({ workspaceRoot }: Props) {
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium">{sess.agentName}</span>
                   <span className="text-xs text-muted-foreground">
-                    {sess.messages.length} 条消息
+                    {sess.messageCount} 条消息
                   </span>
                   {sess.isLoading && (
                     <span className="text-xs text-yellow-600 animate-pulse">

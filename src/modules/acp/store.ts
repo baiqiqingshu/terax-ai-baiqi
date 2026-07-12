@@ -1,5 +1,9 @@
 /**
  * ACP Store — manages agent configurations, connections, and chat sessions.
+ *
+ * Performance optimizations:
+ * - Fine-grained selector hooks to minimize re-renders
+ * - Precise session updates (only mutate the affected session object)
  */
 
 import { create } from "zustand";
@@ -73,6 +77,18 @@ function nextMsgId(): string {
   return `msg-${Date.now()}-${++msgIdCounter}`;
 }
 
+// ─── Helper: update a single session by index without recreating the whole array ─
+
+function updateSessionAt(
+  sessions: ChatSession[],
+  idx: number,
+  updater: (session: ChatSession) => ChatSession,
+): ChatSession[] {
+  const updated = sessions.slice();
+  updated[idx] = updater(sessions[idx]);
+  return updated;
+}
+
 // ─── Store ───────────────────────────────────────────────────────────────────
 
 export const useAcpStore = create<AcpStore>((set, get) => ({
@@ -123,7 +139,7 @@ export const useAcpStore = create<AcpStore>((set, get) => ({
   },
 
   sendMessage: async (sessionIdx, content) => {
-    const sessions = [...get().sessions];
+    const { sessions } = get();
     const session = sessions[sessionIdx];
     if (!session) return;
 
@@ -133,19 +149,29 @@ export const useAcpStore = create<AcpStore>((set, get) => ({
       content,
       timestamp: Date.now(),
     };
-    session.messages = [...session.messages, userMsg];
-    session.isLoading = true;
-    session.stopReason = undefined;
-    set({ sessions: [...sessions] });
+
+    // Precise update: only replace the target session
+    set({
+      sessions: updateSessionAt(sessions, sessionIdx, (s) => ({
+        ...s,
+        messages: [...s.messages, userMsg],
+        isLoading: true,
+        stopReason: undefined,
+      })),
+    });
 
     try {
       await acpPrompt(session.agentName, session.sessionId, content);
     } catch (e) {
-      // Mark as not loading on error
-      const updated = [...get().sessions];
-      if (updated[sessionIdx]) {
-        updated[sessionIdx] = { ...updated[sessionIdx], isLoading: false };
-        set({ sessions: updated });
+      // Mark as not loading on error — precise update
+      const current = get().sessions;
+      if (current[sessionIdx]) {
+        set({
+          sessions: updateSessionAt(current, sessionIdx, (s) => ({
+            ...s,
+            isLoading: false,
+          })),
+        });
       }
       throw e;
     }
@@ -185,43 +211,44 @@ export const useAcpStore = create<AcpStore>((set, get) => ({
 
       case "session_update": {
         set((s) => {
-          const sessions = [...s.sessions];
-          const idx = sessions.findIndex(
+          const idx = s.sessions.findIndex(
             (sess) =>
               sess.agentName === event.agent_name &&
               sess.sessionId === event.session_id,
           );
           if (idx < 0) return s;
 
-          const session = { ...sessions[idx] };
+          return {
+            sessions: updateSessionAt(s.sessions, idx, (session) => {
+              let newMessages = session.messages;
 
-          // Append assistant messages
-          if (event.messages) {
-            for (const msg of event.messages) {
-              const text =
-                typeof msg.content === "string"
-                  ? msg.content
-                  : msg.content.map((p) => p.text).join("");
-              session.messages = [
-                ...session.messages,
-                {
-                  id: nextMsgId(),
-                  role: msg.role,
-                  content: text,
-                  timestamp: Date.now(),
-                },
-              ];
-            }
-          }
+              // Append assistant messages
+              if (event.messages) {
+                const incoming: ChatMessage[] = [];
+                for (const msg of event.messages) {
+                  const text =
+                    typeof msg.content === "string"
+                      ? msg.content
+                      : msg.content.map((p) => p.text).join("");
+                  incoming.push({
+                    id: nextMsgId(),
+                    role: msg.role,
+                    content: text,
+                    timestamp: Date.now(),
+                  });
+                }
+                newMessages = [...session.messages, ...incoming];
+              }
 
-          // Mark done if stop_reason present
-          if (event.stop_reason) {
-            session.isLoading = false;
-            session.stopReason = event.stop_reason;
-          }
-
-          sessions[idx] = session;
-          return { sessions };
+              return {
+                ...session,
+                messages: newMessages,
+                // Mark done if stop_reason present
+                isLoading: event.stop_reason ? false : session.isLoading,
+                stopReason: event.stop_reason ?? session.stopReason,
+              };
+            }),
+          };
         });
         break;
       }
@@ -254,3 +281,44 @@ export const useAcpStore = create<AcpStore>((set, get) => ({
     return unlisten;
   },
 }));
+
+// ─── Selector Hooks (fine-grained subscriptions) ─────────────────────────────
+
+/** Subscribe only to the active session object */
+export function useActiveSession(): ChatSession | null {
+  return useAcpStore((s) =>
+    s.activeSessionIdx >= 0 ? s.sessions[s.activeSessionIdx] ?? null : null,
+  );
+}
+
+/** Subscribe only to the messages array of the active session */
+export function useActiveSessionMessages(): ChatMessage[] {
+  return useAcpStore((s) => {
+    const session =
+      s.activeSessionIdx >= 0 ? s.sessions[s.activeSessionIdx] : null;
+    return session?.messages ?? [];
+  });
+}
+
+/** Subscribe only to connection-related state */
+export function useAcpConnection() {
+  return useAcpStore((s) => ({
+    agents: s.agents,
+    connectedAgents: s.connectedAgents,
+    connecting: s.connecting,
+  }));
+}
+
+/** Subscribe only to session list metadata (not full message arrays) */
+export function useSessionList() {
+  return useAcpStore((s) => ({
+    count: s.sessions.length,
+    activeIdx: s.activeSessionIdx,
+    sessions: s.sessions.map((sess) => ({
+      id: sess.id,
+      agentName: sess.agentName,
+      messageCount: sess.messages.length,
+      isLoading: sess.isLoading,
+    })),
+  }));
+}

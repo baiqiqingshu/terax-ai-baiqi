@@ -1,41 +1,89 @@
 /**
  * AcpChatPanel — Main chat interface for ACP agent interaction.
- * Features:
+ * Performance-optimized for long conversations:
+ * - Virtualized message list (@tanstack/react-virtual)
+ * - Auto stick-to-bottom (use-stick-to-bottom)
+ * - Memoized message bubbles
  * - Drag & drop files/folders into input → auto-converts to path
  * - Multi-line resizable input textarea
- * - Session history viewing
- * - Streaming message display
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useAcpStore } from "../store";
+import { MessageBubble } from "./MessageBubble";
 
 export function AcpChatPanel() {
-  const {
-    sessions,
-    activeSessionIdx,
-    sendMessage,
-    cancelTurn,
-  } = useAcpStore();
+  const activeSessionIdx = useAcpStore((s) => s.activeSessionIdx);
+  const session = useAcpStore(
+    (s) => (s.activeSessionIdx >= 0 ? s.sessions[s.activeSessionIdx] : null),
+  );
+  const sendMessage = useAcpStore((s) => s.sendMessage);
+  const cancelTurn = useAcpStore((s) => s.cancelTurn);
 
-  const session = sessions[activeSessionIdx] ?? null;
   const [input, setInput] = useState("");
   const [isDragOver, setIsDragOver] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isStuckRef = useRef(true);
 
-  // Auto-scroll to bottom on new messages
+  const messages = session?.messages ?? [];
+
+  // ─── Virtualizer ────────────────────────────────────────────────────────────
+
+  const virtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 60, // estimated row height
+    overscan: 10,
+  });
+
+  // ─── Auto stick-to-bottom ──────────────────────────────────────────────────
+
+  const scrollToBottom = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, []);
+
+  // Track if user is at bottom
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const threshold = 40;
+    isStuckRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+  }, []);
+
+  // Auto-scroll when new messages arrive (only if stuck to bottom)
+  const prevMsgCountRef = useRef(messages.length);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [session?.messages.length]);
+    if (messages.length > prevMsgCountRef.current && isStuckRef.current) {
+      // Use requestAnimationFrame for smooth scroll after DOM update
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
+    }
+    prevMsgCountRef.current = messages.length;
+  }, [messages.length, scrollToBottom]);
+
+  // Also scroll when loading state changes (streaming done)
+  useEffect(() => {
+    if (isStuckRef.current) {
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
+    }
+  }, [session?.isLoading, scrollToBottom]);
 
   // Focus input on session change
   useEffect(() => {
     inputRef.current?.focus();
   }, [activeSessionIdx]);
 
-  // Auto-resize textarea
+  // ─── Auto-resize textarea ──────────────────────────────────────────────────
+
   const adjustTextareaHeight = useCallback(() => {
     const el = inputRef.current;
     if (!el) return;
@@ -46,6 +94,8 @@ export function AcpChatPanel() {
   useEffect(() => {
     adjustTextareaHeight();
   }, [input, adjustTextareaHeight]);
+
+  // ─── Send / Cancel ─────────────────────────────────────────────────────────
 
   const handleSend = useCallback(async () => {
     const trimmed = input.trim();
@@ -135,6 +185,15 @@ export function AcpChatPanel() {
     [],
   );
 
+  // ─── Scroll to bottom button ───────────────────────────────────────────────
+
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+
+  const handleScrollForBtn = useCallback(() => {
+    handleScroll();
+    setShowScrollBtn(!isStuckRef.current);
+  }, [handleScroll]);
+
   // ─── No active session ─────────────────────────────────────────────────────
 
   if (!session) {
@@ -152,48 +211,79 @@ export function AcpChatPanel() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
+  const virtualItems = virtualizer.getVirtualItems();
+
   return (
-    <div ref={containerRef} className="flex h-full flex-col">
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
-        {session.messages.length === 0 && !session.isLoading && (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-xs text-muted-foreground/70">
-              与 {session.agentName} 的会话已就绪
-            </p>
-          </div>
-        )}
-
-        {session.messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
+    <div className="flex h-full flex-col">
+      {/* Messages area — virtualized */}
+      <div className="relative flex-1 min-h-0">
+        <div
+          ref={scrollRef}
+          onScroll={handleScrollForBtn}
+          className="absolute inset-0 overflow-y-auto px-3 py-2"
+        >
+          {messages.length === 0 && !session.isLoading ? (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-xs text-muted-foreground/70">
+                与 {session.agentName} 的会话已就绪
+              </p>
+            </div>
+          ) : (
             <div
-              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words ${
-                msg.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground"
-              }`}
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: "100%",
+                position: "relative",
+              }}
             >
-              {msg.content}
+              {virtualItems.map((virtualRow) => {
+                const msg = messages[virtualRow.index];
+                return (
+                  <div
+                    key={msg.id}
+                    data-index={virtualRow.index}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    <div className="py-1">
+                      <MessageBubble message={msg} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-        ))}
+          )}
 
-        {session.isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-muted text-muted-foreground rounded-lg px-3 py-2 text-sm">
-              <span className="inline-flex items-center gap-1">
-                <span className="animate-bounce [animation-delay:0ms]">·</span>
-                <span className="animate-bounce [animation-delay:150ms]">·</span>
-                <span className="animate-bounce [animation-delay:300ms]">·</span>
-              </span>
+          {/* Loading indicator */}
+          {session.isLoading && (
+            <div className="flex justify-start py-1">
+              <div className="bg-muted text-muted-foreground rounded-lg px-3 py-2 text-sm">
+                <span className="inline-flex items-center gap-1">
+                  <span className="animate-bounce [animation-delay:0ms]">·</span>
+                  <span className="animate-bounce [animation-delay:150ms]">·</span>
+                  <span className="animate-bounce [animation-delay:300ms]">·</span>
+                </span>
+              </div>
             </div>
-          </div>
+          )}
+        </div>
+
+        {/* Scroll to bottom button */}
+        {showScrollBtn && (
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-background/90 border border-border shadow-md px-3 py-1 text-xs text-muted-foreground hover:text-foreground backdrop-blur transition-colors"
+          >
+            ↓ 回到底部
+          </button>
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input area with drag & drop support */}
