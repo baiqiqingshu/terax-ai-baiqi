@@ -55,7 +55,24 @@ jobs:
           key: ${{ matrix.platform }}-${{ matrix.rust-target }}
 
       - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Commit lockfile if changed
+        if: matrix.platform == 'ubuntu-22.04'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet pnpm-lock.yaml 2>/dev/null; then
+            echo "Lockfile unchanged, skipping commit."
+          else
+            git add pnpm-lock.yaml
+            git commit -m "chore: update pnpm-lock.yaml [skip ci]"
+            git push origin HEAD:main
+            echo "Lockfile committed and pushed."
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - id: tauri
         uses: tauri-apps/tauri-action@v1
