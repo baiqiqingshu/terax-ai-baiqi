@@ -25,7 +25,7 @@ import {
   useSelectionAskAi,
 } from "@/modules/ai";
 import { AiComposerProvider } from "@/modules/ai/lib/composer";
-import { native } from "@/modules/ai/lib/native";
+import { native } from "@/lib/native";
 import { CommandPalette, createCommandItems } from "@/modules/command-palette";
 import {
   type EditorPaneHandle,
@@ -33,6 +33,7 @@ import {
   useApplyEditorFontSize,
   useEditorFileSync,
 } from "@/modules/editor";
+import { AcpSidebarPanel } from "@/modules/acp";
 import { FileExplorer, type FileExplorerHandle } from "@/modules/explorer";
 import type { GitHistorySearchHandle } from "@/modules/git-history";
 import {
@@ -60,6 +61,7 @@ import {
   useSourceControlContext,
 } from "@/modules/source-control";
 import {
+  ProjectSelector,
   SpaceSwitcher,
   useSpacePersistence,
   useSpaces,
@@ -169,7 +171,7 @@ export default function App() {
   useTerminalFileDrop();
   const explorerRef = useRef<FileExplorerHandle>(null);
 
-  // Drives session disposal off the pane tree, not React lifecycles —
+  // Drives session disposal off the pane tree, not React lifecycles �?
   // split/unsplit re-mount components but the leaf is still live.
   const liveLeavesRef = useRef<Set<number>>(new Set());
 
@@ -212,7 +214,12 @@ export default function App() {
     [switchWorkspace, activeSpaceId],
   );
 
-  useSpacesBoot({
+  const {
+    needsProjectSelector,
+    loadedSpaces: bootSpaces,
+    completeBootWithSpace,
+    completeBootWithoutProject,
+  } = useSpacesBoot({
     ready: launchCwdResolved,
     launchCwd,
     home,
@@ -455,7 +462,7 @@ export default function App() {
         return;
       }
       // Dispatch a window event the composer listens for. Same pattern as
-      // selections — keeps file-explorer decoupled from the AI module.
+      // selections �?keeps file-explorer decoupled from the AI module.
       window.dispatchEvent(
         new CustomEvent<string>("terax:ai-attach-file", { detail: path }),
       );
@@ -786,7 +793,7 @@ export default function App() {
         const inTerminal = !!(target as HTMLElement | null)?.closest?.(
           ".xterm",
         );
-        // Only defer the plain (no-shift) Ctrl/⌘+B binding; the Shift variant
+        // Only defer the plain (no-shift) Ctrl/�?B binding; the Shift variant
         // is the always-on toggle and is never claimed by the terminal.
         return inTerminal && !e.shiftKey;
       }
@@ -1097,6 +1104,23 @@ export default function App() {
     terminalRefs,
   });
 
+  // ─── Behaviour C: Show project selector on first launch ───────────────────
+  if (needsProjectSelector) {
+    return (
+      <ThemeProvider>
+        <ProjectSelector
+          spaces={bootSpaces}
+          onSelect={(space) => void completeBootWithSpace(space)}
+          onCreateNew={(root, name) => {
+            const meta = useSpaces.getState().create({ name, root });
+            void completeBootWithSpace(meta);
+          }}
+          onOpenWithout={() => void completeBootWithoutProject()}
+        />
+      </ThemeProvider>
+    );
+  }
+
   const shell = (
     <ThemeProvider>
       <TooltipProvider>
@@ -1169,6 +1193,8 @@ export default function App() {
                         onRevealInTerminal={cdInNewTab}
                         onAttachToAgent={handleAttachFileToAgent}
                       />
+                    ) : sidebarView === "acp" ? (
+                      <AcpSidebarPanel workspaceRoot={explorerRoot} />
                     ) : (
                       <SourceControlPanel
                         open
@@ -1182,7 +1208,7 @@ export default function App() {
                   </div>
                   <SidebarRail
                     activeView={sidebarView}
-                    onSelectView={persistSidebarView}
+                    onSelectView={cycleSidebarView}
                     changedCount={sourceControl.changedCount}
                   />
                 </div>

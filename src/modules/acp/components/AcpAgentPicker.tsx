@@ -1,0 +1,173 @@
+/**
+ * AcpAgentPicker — Agent selection and connection management UI.
+ * Shows available agents, connection status, and session creation.
+ */
+
+import { useCallback, useState } from "react";
+import { useAcpStore } from "../store";
+import type { AgentConfig, WorkspaceRoot } from "@/lib/acp";
+
+interface Props {
+  /** Current workspace root for ACP context */
+  workspaceRoot?: string | null;
+}
+
+export function AcpAgentPicker({ workspaceRoot }: Props) {
+  const {
+    agents,
+    connectedAgents,
+    connecting,
+    sessions,
+    activeSessionIdx,
+    connect,
+    disconnect,
+    newSession,
+    setActiveSession,
+    removeSession,
+  } = useAcpStore();
+
+  const [error, setError] = useState<string | null>(null);
+
+  const handleConnect = useCallback(
+    async (agent: AgentConfig) => {
+      setError(null);
+      const roots: WorkspaceRoot[] = workspaceRoot
+        ? [{ uri: `file:///${workspaceRoot.replace(/\\/g, "/")}`, name: workspaceRoot.split(/[\\/]/).pop() }]
+        : [];
+      try {
+        await connect(agent.name, roots);
+      } catch (e) {
+        setError(String(e));
+      }
+    },
+    [connect, workspaceRoot],
+  );
+
+  const handleNewSession = useCallback(
+    async (agentName: string) => {
+      setError(null);
+      try {
+        await newSession(agentName);
+      } catch (e) {
+        setError(String(e));
+      }
+    },
+    [newSession],
+  );
+
+  return (
+    <div className="flex flex-col gap-3 p-3 text-sm">
+      {/* Agent list */}
+      <div>
+        <h3 className="mb-2 font-medium text-foreground">可用 Agents</h3>
+        {agents.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            未配置任何 Agent。在设置中添加 ACP agent 配置。
+          </p>
+        )}
+        <div className="space-y-1">
+          {agents.map((agent) => {
+            const isConnected = connectedAgents.includes(agent.name);
+            const isConnecting = connecting === agent.name;
+            return (
+              <div
+                key={agent.name}
+                className="flex items-center justify-between rounded-md border border-border px-3 py-2"
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      isConnected
+                        ? "bg-green-500"
+                        : isConnecting
+                          ? "bg-yellow-500 animate-pulse"
+                          : "bg-muted-foreground/30"
+                    }`}
+                  />
+                  <span className="font-medium">{agent.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {agent.transport ?? (agent.command ? "stdio" : "http")}
+                  </span>
+                </div>
+                <div className="flex gap-1">
+                  {isConnected ? (
+                    <>
+                      <button
+                        onClick={() => void handleNewSession(agent.name)}
+                        className="rounded px-2 py-1 text-xs bg-primary/10 text-primary hover:bg-primary/20"
+                      >
+                        新会话
+                      </button>
+                      <button
+                        onClick={() => void disconnect(agent.name)}
+                        className="rounded px-2 py-1 text-xs bg-destructive/10 text-destructive hover:bg-destructive/20"
+                      >
+                        断开
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => void handleConnect(agent)}
+                      disabled={isConnecting}
+                      className="rounded px-2 py-1 text-xs bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50"
+                    >
+                      {isConnecting ? "连接中…" : "连接"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Session tabs */}
+      {sessions.length > 0 && (
+        <div>
+          <h3 className="mb-2 font-medium text-foreground">会话</h3>
+          <div className="space-y-1">
+            {sessions.map((sess, idx) => (
+              <div
+                key={sess.id}
+                onClick={() => setActiveSession(idx)}
+                className={`flex items-center justify-between rounded-md border px-3 py-2 cursor-pointer ${
+                  idx === activeSessionIdx
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted/50"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium">{sess.agentName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {sess.messages.length} 条消息
+                  </span>
+                  {sess.isLoading && (
+                    <span className="text-xs text-yellow-600 animate-pulse">
+                      处理中
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeSession(idx);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-destructive"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Error display */}
+      {error && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+          <p className="text-xs text-destructive">{error}</p>
+        </div>
+      )}
+    </div>
+  );
+}

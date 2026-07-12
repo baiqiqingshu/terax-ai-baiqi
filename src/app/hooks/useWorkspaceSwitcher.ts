@@ -1,6 +1,6 @@
 import { type RefObject, useCallback, useEffect, useState } from "react";
 import { homeDir } from "@tauri-apps/api/path";
-import { native } from "@/modules/ai/lib/native";
+import { native } from "@/lib/native";
 import type { Tab } from "@/modules/tabs";
 import {
   getWslHome,
@@ -67,7 +67,7 @@ export function useWorkspaceSwitcher({
     try {
       await native.workspaceAuthorize(nextHome);
     } catch {
-      // Non-fatal â€” git panel will surface "not authorized" if needed.
+      // Non-fatal â€?git panel will surface "not authorized" if needed.
     }
   }, []);
 

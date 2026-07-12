@@ -3,19 +3,19 @@
 // Input: commits ordered newest-first, each with parent SHAs.
 // Output: per-row layout the SVG rail can render directly.
 //
-// Algorithm: maintain `lanes` â€” an array of "expected next commits" per lane.
+// Algorithm: maintain `lanes` â€?an array of "expected next commits" per lane.
 // For each commit top-to-bottom:
-//   1. Find lanes that expect this commit (one or more â€” merges target the
+//   1. Find lanes that expect this commit (one or more â€?merges target the
 //      leftmost; the others collapse into it).
 //   2. If none, allocate the leftmost free slot.
 //   3. Replace the commit's lane with its first parent, allocate lanes for
 //      additional parents (reusing a lane that already expects them when
-//      possible â€” keeps history visually consistent).
+//      possible â€?keeps history visually consistent).
 //
 // Lane colors are stable per slot index. This keeps the rail readable when
 // you load more pages, since lane indices don't shift retroactively.
 
-import type { GitLogEntry } from "@/modules/ai/lib/native";
+import type { GitLogEntry } from "@/lib/native";
 
 export type LaneColor = string;
 
@@ -37,9 +37,9 @@ export function laneColor(index: number): LaneColor {
 export type GraphEdge =
   // straight passthrough or first-parent vertical
   | { kind: "straight"; lane: number; color: LaneColor }
-  // merge: another lane joins into this commit (top â†’ node)
+  // merge: another lane joins into this commit (top â†?node)
   | { kind: "merge"; fromLane: number; toLane: number; color: LaneColor }
-  // branch: this commit fans out a new lane (node â†’ bottom)
+  // branch: this commit fans out a new lane (node â†?bottom)
   | { kind: "branch"; fromLane: number; toLane: number; color: LaneColor };
 
 export type GraphRow = {
@@ -124,7 +124,7 @@ export function layoutGraph(
       }
     }
 
-    // Special case: no claiming lane â€” this is a fresh tip. Reserve our lane
+    // Special case: no claiming lane â€?this is a fresh tip. Reserve our lane
     // visually (no incoming top edge for this lane).
 
     // Collapse all claiming lanes (they're consumed by this row).
@@ -141,7 +141,7 @@ export function layoutGraph(
       // First parent stays in commit's lane.
       lanes[lane] = parents[0];
 
-      // Additional parents â†’ reuse existing lane or allocate new.
+      // Additional parents â†?reuse existing lane or allocate new.
       for (let p = 1; p < parents.length; p++) {
         const parentSha = parents[p];
         let parentLane = lanes.indexOf(parentSha);

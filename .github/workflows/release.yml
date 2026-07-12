@@ -34,7 +34,8 @@ jobs:
             libgtk-3-dev \
             librsvg2-dev \
             libssl-dev \
-            patchelf
+            patchelf \
+            zip
 
       - uses: pnpm/action-setup@v6
 
@@ -70,17 +71,41 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
 
+      # ============================================================
+      # 绿色版 ZIP 打包 - Windows (单个 exe)
+      # ============================================================
+      - name: Package portable ZIP (Windows)
+        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $exe = "src-tauri/target/release/aterax.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "Binary not found: $exe"
+            exit 1
+          }
+          $zipName = "Aterax-${{ github.ref_name }}-portable-windows-x64.zip"
+          Compress-Archive -Path $exe -DestinationPath $zipName -Force
+          Write-Host "Created: $zipName ($((Get-Item $zipName).Length / 1MB) MB)"
+
+      - name: Upload portable ZIP (Windows)
+        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            "Aterax-${{ github.ref_name }}-portable-windows-x64.zip" \
+            --clobber --repo "${{ github.repository }}"
+
+      # ============================================================
+      # 绿色版 ZIP 打包 - Linux (AppImage 单文件)
+      # ============================================================
+
       # Strip the bundled libwayland-* libs from the AppImage so it loads the
       # host copies at runtime. The Ubuntu 22.04 build host ships libwayland
       # 1.20, but recent Mesa (Fedora 43 / Arch / Bazzite, Mesa 1.22+) needs
       # newer symbols; AppImage puts its bundled libs first on the search path,
-      # so the stale copy wins and EGL fails with EGL_BAD_PARAMETER. libgdk-3
-      # hard-links these three, so removing them only redirects resolution to
-      # the host copy, which every GTK-capable system has. They are on the
-      # AppImage excludelist for this exact reason. The re-signed AppImage and
-      # its .sig are re-uploaded here; the updater manifest is patched in the
-      # patch-appimage-updater job after all matrix legs finish, so a parallel
-      # macOS/Windows upload cannot clobber the combined latest.json.
+      # so the stale copy wins and EGL fails with EGL_BAD_PARAMETER.
       - name: Fix AppImage wayland libs and re-sign
         if: matrix.platform == 'ubuntu-22.04' && startsWith(github.ref, 'refs/tags/')
         env:
@@ -137,6 +162,24 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           gh release upload "$TAG" "$APPIMAGE" "$APPIMAGE.sig" \
             --clobber --repo "$GITHUB_REPOSITORY"
+
+      - name: Package portable ZIP (Linux)
+        if: matrix.platform == 'ubuntu-22.04' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -euo pipefail
+          APPIMAGE=$(ls src-tauri/target/release/bundle/appimage/*.AppImage | head -n1)
+          ZIP_NAME="Aterax-${{ github.ref_name }}-portable-linux-x64.zip"
+          zip -j "$ZIP_NAME" "$APPIMAGE"
+          echo "Created: $ZIP_NAME ($(du -h "$ZIP_NAME" | cut -f1))"
+
+      - name: Upload portable ZIP (Linux)
+        if: matrix.platform == 'ubuntu-22.04' && startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            "Aterax-${{ github.ref_name }}-portable-linux-x64.zip" \
+            --clobber --repo "${{ github.repository }}"
 
   # Patch the AppImage signature into the combined updater manifest. Runs once,
   # after every matrix leg has finished merging its platform into latest.json,

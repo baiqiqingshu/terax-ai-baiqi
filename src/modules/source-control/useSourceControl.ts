@@ -2,7 +2,7 @@ import {
   native,
   type GitRepoInfo,
   type GitStatusSnapshot,
-} from "@/modules/ai/lib/native";
+} from "@/lib/native";
 import { useWorkspaceEnvStore, workspaceScopeKey } from "@/modules/workspace";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -98,7 +98,7 @@ export function getSourceControlRemoteIndicator(
   if (summary.ahead > 0 && summary.behind > 0) {
     return {
       visible: true,
-      label: `â†‘${summary.ahead} â†“${summary.behind}`,
+      label: `â†?{summary.ahead} â†?{summary.behind}`,
       title:
         "Branch has diverged from upstream. Use Source Control or the terminal to resolve it.",
       disabled: true,
@@ -108,7 +108,7 @@ export function getSourceControlRemoteIndicator(
   if (summary.behind > 0) {
     return {
       visible: true,
-      label: `â†“${summary.behind}`,
+      label: `â†?{summary.behind}`,
       title: `Pull ${summary.behind} remote ${
         summary.behind === 1 ? "commit" : "commits"
       } with fast-forward only.`,
@@ -119,7 +119,7 @@ export function getSourceControlRemoteIndicator(
   if (summary.ahead > 0) {
     return {
       visible: true,
-      label: `â†‘${summary.ahead}`,
+      label: `â†?{summary.ahead}`,
       title: `Push ${summary.ahead} local ${
         summary.ahead === 1 ? "commit" : "commits"
       }.`,

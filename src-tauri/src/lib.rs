@@ -1,6 +1,6 @@
 pub mod modules;
 
-use modules::{agent, fs, git, history, lsp, net, pty, secrets, shell, workspace};
+use modules::{acp, fs, git, history, lsp, net, pty, secrets, shell, workspace};
 use std::sync::Mutex;
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 #[cfg(target_os = "macos")]
@@ -112,20 +112,6 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    #[cfg(windows)]
-    {
-        let args: Vec<String> = std::env::args().collect();
-        if args.get(1).map(String::as_str) == Some("__terax_notify") {
-            if let (Some(agent), Some(event)) = (args.get(2), args.get(3)) {
-                agent::emit_conout_marker(agent, event);
-            }
-            use std::io::Write;
-            let mut out = std::io::stdout();
-            let _ = out.write_all(b"{}");
-            let _ = out.flush();
-            std::process::exit(0);
-        }
-    }
 
     let cli_dir = parse_launch_dir();
     workspace::init_launch_cwd(cli_dir.as_deref());
@@ -135,7 +121,6 @@ pub fn run() {
     let builder = builder.plugin(tauri_plugin_clipboard_manager::init());
     builder
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         // Skip restoring VISIBLE — frontend calls window.show() after first
         // paint so the user never sees a transparent window-shadow flash on
         // Windows/Linux.
@@ -154,6 +139,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
+        .manage(acp::commands::AcpState::default())
         .setup(|_app| {
             // macOS skips parent() for the settings window, so tie its lifecycle
             // to the main window here instead. Other platforms keep parent().
@@ -171,6 +157,11 @@ pub fn run() {
                     }
                 });
             }
+
+            // Start ACP event forwarding
+            let acp_state = _app.state::<acp::commands::AcpState>();
+            acp::commands::start_event_forwarding(_app.handle(), &acp_state);
+
             Ok(())
         })
         .manage(pty::PtyState::default())
@@ -242,6 +233,30 @@ pub fn run() {
             git::commands::git_remote_url,
             git::commands::git_list_branches,
             git::commands::git_checkout_branch,
+            git::commands::git_stash_save,
+            git::commands::git_stash_pop,
+            git::commands::git_stash_list,
+            git::commands::git_stash_drop,
+            git::commands::git_merge,
+            git::commands::git_rebase,
+            git::commands::git_rebase_abort,
+            git::commands::git_rebase_continue,
+            git::commands::git_rebase_skip,
+            git::commands::git_cherry_pick,
+            git::commands::git_revert,
+            git::commands::git_reset,
+            git::commands::git_create_branch,
+            git::commands::git_delete_branch,
+            git::commands::git_rename_branch,
+            git::commands::git_tag_list,
+            git::commands::git_tag_create,
+            git::commands::git_tag_delete,
+            git::commands::git_remote_list,
+            git::commands::git_remote_add,
+            git::commands::git_remote_remove,
+            git::commands::git_blame,
+            git::commands::git_init,
+            git::commands::git_clone,
             shell::shell_run_command,
             shell::shell_session_open,
             shell::shell_session_run,
@@ -257,19 +272,26 @@ pub fn run() {
             workspace::workspace_current_dir,
             get_launch_dir,
             open_settings_window,
-            agent::agent_enable_hooks,
-            agent::agent_hooks_status,
             secrets::secrets_get,
             secrets::secrets_set,
             secrets::secrets_delete,
             secrets::secrets_get_all,
-            net::lm_ping,
-            net::ai_http_request,
-            net::ai_http_stream,
             history::history_suggest,
             history::history_commands,
             history::history_record,
             history::history_list,
+            // ACP commands
+            acp::commands::acp_set_configs,
+            acp::commands::acp_get_configs,
+            acp::commands::acp_connect,
+            acp::commands::acp_disconnect,
+            acp::commands::acp_new_session,
+            acp::commands::acp_prompt,
+            acp::commands::acp_cancel,
+            acp::commands::acp_connected_agents,
+            acp::commands::acp_is_connected,
+            acp::acp_load_history,
+            acp::acp_load_history_detail,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

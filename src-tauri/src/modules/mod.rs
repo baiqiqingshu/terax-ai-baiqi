@@ -1,4 +1,4 @@
-pub mod agent;
+pub mod acp;
 pub mod fs;
 pub mod git;
 pub mod history;

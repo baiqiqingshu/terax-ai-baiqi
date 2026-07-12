@@ -43,7 +43,7 @@ import { useGitStatus } from "./lib/useGitStatus";
 import type { GitStatusCode } from "./lib/gitStatusUtils";
 import { useGlobalShortcuts } from "@/modules/shortcuts";
 import { usePreferencesStore } from "@/modules/settings/preferences";
-import type { GitStatusSnapshot } from "@/modules/ai/lib/native";
+import type { GitStatusSnapshot } from "@/lib/native";
 
 export type FileExplorerHandle = {
   focus: () => void;
@@ -159,7 +159,7 @@ function buildRows(
             key: `loading:${path}`,
             depth: depth + 1,
             tone: "muted",
-            message: "Loadingâ€¦",
+            message: "Loadingâ€?,
           });
         } else if (child?.status === "error") {
           rows.push({
@@ -617,7 +617,7 @@ export const FileExplorer = memo(
                 ) : null}
                 {root?.status === "loading" && (
                   <div className="px-3 py-2 text-[11px] text-muted-foreground">
-                    Loadingâ€¦
+                    Loadingâ€?
                   </div>
                 )}
                 {root?.status === "error" && (

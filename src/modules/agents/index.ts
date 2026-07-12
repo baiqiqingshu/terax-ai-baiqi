@@ -1,3 +1,13 @@
-export { AgentNotificationsBridge } from "./components/AgentNotificationsBridge";
-export { NotificationBell } from "./components/NotificationBell";
-export { nextAttentionTarget } from "./store/agentStore";
+/** Stub: Agents module (removed, pending ACP replacement) */
+
+export function AgentNotificationsBridge() {
+  return null;
+}
+
+export function NotificationBell() {
+  return null;
+}
+
+export function nextAttentionTarget(): null {
+  return null;
+}
