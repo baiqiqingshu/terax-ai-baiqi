@@ -57,19 +57,23 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Commit lockfile if changed
+      - name: Generate Rust lockfile
+        working-directory: src-tauri
+        run: cargo generate-lockfile
+
+      - name: Commit lockfiles if changed
         if: matrix.platform == 'ubuntu-22.04'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet pnpm-lock.yaml 2>/dev/null; then
-            echo "Lockfile unchanged, skipping commit."
+          if git diff --quiet -- pnpm-lock.yaml src-tauri/Cargo.lock; then
+            echo "Lockfiles unchanged, skipping commit."
           else
-            git add pnpm-lock.yaml
-            git commit -m "chore: update pnpm-lock.yaml [skip ci]"
+            git add pnpm-lock.yaml src-tauri/Cargo.lock
+            git commit -m "chore: update dependency lockfiles [skip ci]"
             git push origin HEAD:main
-            echo "Lockfile committed and pushed."
+            echo "Lockfiles committed and pushed."
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

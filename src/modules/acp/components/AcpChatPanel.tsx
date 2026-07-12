@@ -315,6 +315,7 @@ export function AcpChatPanel() {
           <div className="flex flex-col gap-1">
             {session.isLoading ? (
               <button
+                type="button"
                 onClick={handleCancel}
                 className="rounded-md bg-destructive px-3 py-2 text-xs text-destructive-foreground hover:bg-destructive/90"
                 title="取消当前请求"
@@ -323,6 +324,7 @@ export function AcpChatPanel() {
               </button>
             ) : (
               <button
+                type="button"
                 onClick={() => void handleSend()}
                 disabled={!input.trim()}
                 className="rounded-md bg-primary px-3 py-2 text-xs text-primary-foreground hover:bg-primary/90 disabled:opacity-50"

@@ -96,12 +96,14 @@ export function AcpAgentPicker({ workspaceRoot }: Props) {
                   {isConnected ? (
                     <>
                       <button
+                        type="button"
                         onClick={() => void handleNewSession(agent.name)}
                         className="rounded px-2 py-1 text-xs bg-primary/10 text-primary hover:bg-primary/20"
                       >
                         新会话
                       </button>
                       <button
+                        type="button"
                         onClick={() => void disconnect(agent.name)}
                         className="rounded px-2 py-1 text-xs bg-destructive/10 text-destructive hover:bg-destructive/20"
                       >
@@ -110,6 +112,7 @@ export function AcpAgentPicker({ workspaceRoot }: Props) {
                     </>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => void handleConnect(agent)}
                       disabled={isConnecting}
                       className="rounded px-2 py-1 text-xs bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50"
@@ -151,6 +154,7 @@ export function AcpAgentPicker({ workspaceRoot }: Props) {
                   )}
                 </div>
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     removeSession(idx);
