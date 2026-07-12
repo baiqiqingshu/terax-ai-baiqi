@@ -96,7 +96,7 @@ jobs:
       # 绿色版 ZIP 打包 - Windows (单个 exe)
       # ============================================================
       - name: Package portable ZIP (Windows)
-        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.platform == 'windows-latest'
         shell: pwsh
         run: |
           $exe = "src-tauri/target/release/aterax.exe"
@@ -109,7 +109,7 @@ jobs:
           Write-Host "Created: $zipName ($((Get-Item $zipName).Length / 1MB) MB)"
 
       - name: Upload portable ZIP (Windows)
-        if: matrix.platform == 'windows-latest' && startsWith(github.ref, 'refs/tags/')
+        if: matrix.platform == 'windows-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
