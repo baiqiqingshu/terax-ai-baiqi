@@ -290,8 +290,8 @@ pub fn run() {
             acp::commands::acp_cancel,
             acp::commands::acp_connected_agents,
             acp::commands::acp_is_connected,
-            acp::acp_load_history,
-            acp::acp_load_history_detail,
+            acp::history::acp_load_history,
+            acp::history::acp_load_history_detail,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
