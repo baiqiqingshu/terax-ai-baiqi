@@ -24,33 +24,17 @@ export function AboutSection() {
   const [version, setVersion] = useState("");
   const [name, setName] = useState("Terax");
   const [build, setBuild] = useState("");
-  const { status, check, install } = useUpdater({ autoCheck: false });
-  const checking = status.kind === "checking";
-  const downloading = status.kind === "downloading";
-  const available = status.kind === "available";
-  const manualAvailable = status.kind === "manual-available";
-  const ready = status.kind === "ready";
-  const checkLabel =
-    status.kind === "uptodate"
-      ? "You're up to date"
-      : status.kind === "error"
-        ? "Check failed — retry"
-        : checking
-          ? "Checking…"
-          : downloading
-            ? "Downloading…"
-            : ready
-              ? "Restart to install"
-              : available
-                ? `Install v${status.update.version}`
-                : manualAvailable
-                  ? `Update to v${status.info.version}`
-                  : "Check for updates";
+  const { available, checking, version: updateVersion, checkForUpdate, install } =
+    useUpdater();
+  const checkLabel = checking
+    ? "Checking…"
+    : available
+      ? `Install v${updateVersion ?? "update"}`
+      : "Check for updates";
   const onUpdateClick = () => {
     if (available) void install();
-    else void check({ manual: true });
+    else void checkForUpdate();
   };
-
   useEffect(() => {
     void getVersion().then(setVersion);
     void getName().then(setName);
@@ -124,7 +108,7 @@ export function AboutSection() {
           <Button
             size="sm"
             onClick={onUpdateClick}
-            disabled={checking || downloading || ready}
+            disabled={checking}
           >
             {checkLabel}
           </Button>
@@ -145,20 +129,6 @@ export function AboutSection() {
             Report an issue
           </Button>
         </div>
-        {status.kind === "error" && (
-          <p className="font-mono text-[10.5px] break-all text-destructive/80">
-            {status.message}
-          </p>
-        )}
-        {downloading && status.contentLength ? (
-          <p className="text-[11px] text-muted-foreground">
-            {Math.min(
-              100,
-              Math.round((status.downloaded / status.contentLength) * 100),
-            )}
-            %
-          </p>
-        ) : null}
       </div>
     </div>
   );

@@ -67,7 +67,7 @@ export function useWorkspaceSwitcher({
     try {
       await native.workspaceAuthorize(nextHome);
     } catch {
-      // Non-fatal â€?git panel will surface "not authorized" if needed.
+      // Non-fatal â€”git panel will surface "not authorized" if needed.
     }
   }, []);
 

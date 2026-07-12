@@ -51,7 +51,7 @@ export type SourceControlEntry = {
 
 export type CheckState = "checked" | "indeterminate" | "unchecked";
 
-/** One row per changed file (flat list) â€?merges the staged/unstaged split. */
+/** One row per changed file (flat list) â€”merges the staged/unstaged split. */
 export type SourceControlFileEntry = {
   key: string;
   path: string;

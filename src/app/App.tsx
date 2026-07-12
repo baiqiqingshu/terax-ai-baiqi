@@ -275,7 +275,6 @@ export default function App() {
     sidebarWidthRef,
     sidebarView,
     initialSidebarCollapsed,
-    persistSidebarView,
     persistSidebarCollapsed,
     toggleSidebar,
     cycleSidebarView,
@@ -1111,10 +1110,6 @@ export default function App() {
         <ProjectSelector
           spaces={bootSpaces}
           onSelect={(space) => void completeBootWithSpace(space)}
-          onCreateNew={(root, name) => {
-            const meta = useSpaces.getState().create({ name, root });
-            void completeBootWithSpace(meta);
-          }}
           onOpenWithout={() => void completeBootWithoutProject()}
         />
       </ThemeProvider>

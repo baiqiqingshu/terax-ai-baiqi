@@ -4,7 +4,7 @@
  * Supports auto-connect for fast agent startup.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAcpStore } from "../store";
 import { AcpAgentPicker } from "./AcpAgentPicker";
 import { AcpChatPanel } from "./AcpChatPanel";

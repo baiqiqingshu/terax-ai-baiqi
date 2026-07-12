@@ -159,7 +159,7 @@ function buildRows(
             key: `loading:${path}`,
             depth: depth + 1,
             tone: "muted",
-            message: "Loadingâ€?,
+            message: "Loadingâ€¦",
           });
         } else if (child?.status === "error") {
           rows.push({
@@ -617,7 +617,7 @@ export const FileExplorer = memo(
                 ) : null}
                 {root?.status === "loading" && (
                   <div className="px-3 py-2 text-[11px] text-muted-foreground">
-                    Loadingâ€?
+                    Loadingâ€¦
                   </div>
                 )}
                 {root?.status === "error" && (

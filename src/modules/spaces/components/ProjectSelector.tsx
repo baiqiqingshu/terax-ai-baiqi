@@ -1,22 +1,13 @@
 import { cn } from "@/lib/utils";
-import {
-  FolderOpen01Icon,
-  PlusSignIcon,
-  Delete02Icon,
-  ArrowRight01Icon,
-} from "@hugeicons/core-free-icons";
+import { PlusSignIcon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { open } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import { SpaceAvatar } from "../SpaceAvatar";
-import { accentFor } from "../lib/spaceColor";
 import type { SpaceMeta } from "../lib/store";
-import { useSpaces } from "../lib/useSpaces";
 
 type Props = {
   spaces: SpaceMeta[];
   onSelect: (space: SpaceMeta) => void;
-  onCreateNew: (root: string, name: string) => void;
   onOpenWithout: () => void;
 };
 
@@ -29,22 +20,9 @@ type Props = {
 export function ProjectSelector({
   spaces,
   onSelect,
-  onCreateNew,
   onOpenWithout,
 }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-
-  const handlePickFolder = async () => {
-    const selected = await open({
-      directory: true,
-      multiple: false,
-      title: "选择项目目录",
-    });
-    if (selected && typeof selected === "string") {
-      const name = selected.split(/[\\/]/).filter(Boolean).pop() ?? "Project";
-      onCreateNew(selected, name);
-    }
-  };
 
   return (
     <div className="flex h-full w-full items-center justify-center bg-[var(--color-bg-base)]">
@@ -76,9 +54,8 @@ export function ProjectSelector({
                 onClick={() => onSelect(space)}
               >
                 <SpaceAvatar
-                  name={space.name}
-                  color={accentFor(space.color)}
-                  size={32}
+                  space={space}
+                  size="md"
                 />
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-medium text-[var(--color-text-primary)]">
@@ -101,17 +78,6 @@ export function ProjectSelector({
 
         {/* Actions */}
         <div className="flex flex-col gap-2 border-t border-[var(--color-border)] pt-3">
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-bg-hover)]"
-            onClick={handlePickFolder}
-          >
-            <HugeiconsIcon
-              icon={FolderOpen01Icon}
-              className="h-4 w-4 text-[var(--color-accent)]"
-            />
-            打开项目目录…
-          </button>
           <button
             type="button"
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-hover)]"

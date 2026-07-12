@@ -511,7 +511,7 @@ export function GitHistoryPane({
           <CenterPlaceholder>
             <Spinner className="size-4" />
             <span className="text-[11.5px] text-muted-foreground">
-              Loading commitsâ€?
+              Loading commitsâ€¦
             </span>
           </CenterPlaceholder>
         ) : loadStatus === "error" && commits.length === 0 ? (
@@ -594,7 +594,7 @@ export function GitHistoryPane({
               {loadStatus === "more" ? (
                 <div className="flex items-center justify-center gap-2 py-3 text-[11px] text-muted-foreground">
                   <Spinner className="size-3" />
-                  Loading moreâ€?
+                  Loading moreâ€¦
                 </div>
               ) : null}
               {endReached && !activeSearch ? (
@@ -798,7 +798,7 @@ const CommitRow = memo(function CommitRow({
             ) : null}
           </span>
         ) : commit.filesChanged === 0 ? (
-          <span className="text-muted-foreground/40">â€?/span>
+          <span className="text-muted-foreground/40">â€”</span>
         ) : null}
       </span>
     </button>
@@ -923,7 +923,7 @@ function CommitFiles({
     return (
       <div className="flex items-center gap-2 px-3 py-3 text-[11px] text-muted-foreground">
         <Spinner className="size-3" />
-        Loading filesâ€?
+        Loading filesâ€¦
       </div>
     );
   }

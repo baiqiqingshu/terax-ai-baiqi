@@ -125,7 +125,7 @@ function dirname(path: string): string {
 }
 
 function entryPathLabel(entry: SourceControlFileEntry): string {
-  if (entry.originalPath) return `${entry.originalPath} â†?${entry.path}`;
+  if (entry.originalPath) return `${entry.originalPath} â†’ ${entry.path}`;
   return dirname(entry.path);
 }
 
@@ -257,7 +257,7 @@ function BranchDropdown({
         {loading ? (
           <div className="flex items-center gap-2 px-3 py-3 text-[11px] text-muted-foreground">
             <Spinner className="size-3" />
-            Loading branchesâ€?
+            Loading branchesâ€¦
           </div>
         ) : error ? (
           <div className="px-3 py-3 text-[11px] leading-snug text-destructive">
@@ -656,7 +656,7 @@ export const SourceControlPanel = memo(function SourceControlPanel({
           </div>
           <div className="flex shrink-0 items-center gap-0.5">
             <IconActionButton
-              label={fetchBusy ? "Fetchingâ€? : "Fetch from remote"}
+              label={fetchBusy ? "Fetchingâ€¦" : "Fetch from remote"}
               disabled={!canFetch}
               onClick={handleFetch}
               side="bottom"
@@ -674,9 +674,9 @@ export const SourceControlPanel = memo(function SourceControlPanel({
             <IconActionButton
               label={
                 pullBusy
-                  ? "Pullingâ€?
+                  ? "Pullingâ€¦"
                   : isDiverged
-                    ? "Branch diverged â€?resolve in terminal"
+                    ? "Branch diverged â€” resolve in terminal"
                     : !hasUpstream
                       ? "No upstream configured"
                       : (scm.status?.behind ?? 0) === 0
@@ -861,7 +861,7 @@ export const SourceControlPanel = memo(function SourceControlPanel({
                       disabled={!canCommit}
                       onClick={() => void scm.commit()}
                     >
-                      {scm.actionBusy === "commit" ? "Committingâ€? : "Commit"}
+                      {scm.actionBusy === "commit" ? "Committingâ€¦" : "Commit"}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent
@@ -883,7 +883,7 @@ export const SourceControlPanel = memo(function SourceControlPanel({
                       disabled={!scm.canPush || !!scm.actionBusy}
                       onClick={() => void scm.push()}
                     >
-                      {scm.actionBusy === "push" ? "Pushingâ€? : "Push"}
+                      {scm.actionBusy === "push" ? "Pushingâ€¦" : "Push"}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent
@@ -1079,7 +1079,7 @@ function DivergedBanner() {
         <span className="font-medium text-foreground/85">
           Diverged from upstream
         </span>
-        <span className="ml-1 opacity-75">â€?resolve in terminal</span>
+        <span className="ml-1 opacity-75">â€” resolve in terminal</span>
       </span>
     </div>
   );
@@ -1305,7 +1305,7 @@ const EntryRow = memo(function EntryRow({
           </ContextMenuItem>
         ) : null}
 
-        {/* Reveal in Finder â€?only for existing files */}
+        {/* Reveal in Finder â€” only for existing files */}
         {!isDeleted && absolutePath ? (
           <>
             <ContextMenuSeparator />

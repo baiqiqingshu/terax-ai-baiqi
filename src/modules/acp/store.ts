@@ -10,7 +10,6 @@ import { create } from "zustand";
 import type {
   AgentConfig,
   AcpEvent,
-  AcpMessage,
   NewSessionResult,
   WorkspaceRoot,
 } from "@/lib/acp";
