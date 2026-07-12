@@ -80,11 +80,11 @@ jobs:
 
       - name: cargo check
         working-directory: src-tauri
-        run: cargo check --all-targets --locked
+        run: cargo check --all-targets
 
       - name: cargo clippy
         working-directory: src-tauri
-        run: cargo clippy --all-targets --locked -- -D warnings
+        run: cargo clippy --all-targets -- -D warnings
 
       - name: Unused crates (advisory)
         working-directory: src-tauri
@@ -93,7 +93,7 @@ jobs:
 
       - name: cargo nextest
         working-directory: src-tauri
-        run: cargo nextest run --locked
+        run: cargo nextest run
 
   rust-platforms:
     name: rust-test (${{ matrix.os }})
@@ -117,11 +117,11 @@ jobs:
 
       - name: cargo check
         working-directory: src-tauri
-        run: cargo check --all-targets --locked
+        run: cargo check --all-targets
 
       - name: cargo nextest
         working-directory: src-tauri
-        run: cargo nextest run --locked --retries 2
+        run: cargo nextest run --retries 2
 
   coverage:
     runs-on: ubuntu-22.04
@@ -153,7 +153,7 @@ jobs:
 
       - name: Generate coverage
         working-directory: src-tauri
-        run: cargo llvm-cov nextest --locked --lcov --output-path lcov.info
+        run: cargo llvm-cov nextest --lcov --output-path lcov.info
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v7
