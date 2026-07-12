@@ -315,7 +315,7 @@ pub async fn acp_load_history(
     sessions.extend(scan_claude_history(project_root.as_deref()));
 
     // Sort by timestamp descending (most recent first)
-    sessions.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    sessions.sort_by_key(|session| std::cmp::Reverse(session.timestamp));
 
     // Limit to 100 most recent
     sessions.truncate(100);

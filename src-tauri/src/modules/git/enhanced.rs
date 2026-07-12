@@ -120,7 +120,7 @@ pub fn merge(
     let has_conflicts = stderr.contains("CONFLICT") || stdout.contains("CONFLICT");
     let success = output.exit_code == Some(0);
     let message = if has_conflicts {
-        format!("Merge conflicts detected. Resolve conflicts and commit.")
+        "Merge conflicts detected. Resolve conflicts and commit.".to_string()
     } else if success {
         stdout.lines().next().unwrap_or("Merge complete").to_string()
     } else {
@@ -152,7 +152,7 @@ pub fn rebase(
     let has_conflicts = stderr.contains("CONFLICT") || stdout.contains("CONFLICT");
     let success = output.exit_code == Some(0);
     let message = if has_conflicts {
-        format!("Rebase conflicts detected. Resolve and run rebase --continue.")
+        "Rebase conflicts detected. Resolve and run rebase --continue.".to_string()
     } else if success {
         "Rebase complete".to_string()
     } else {
@@ -521,14 +521,14 @@ pub fn blame(
     let mut current_line: u32 = 0;
 
     for line in stdout.lines() {
-        if line.starts_with('\t') {
+        if let Some(content) = line.strip_prefix('\t') {
             // Content line
             entries.push(BlameEntry {
                 sha: current_sha.clone(),
                 author: current_author.clone(),
                 date: current_date.clone(),
                 line_number: current_line,
-                content: line[1..].to_string(),
+                content: content.to_string(),
             });
         } else if let Some(rest) = line.strip_prefix("author ") {
             current_author = rest.to_string();

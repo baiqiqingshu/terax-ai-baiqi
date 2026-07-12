@@ -2,7 +2,7 @@ use crate::modules::acp::transport::{StdioTransport, TransportError, TransportRe
 use crate::modules::acp::types::*;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex, RwLock};
+use tokio::sync::{mpsc, RwLock};
 
 /// Manages ACP agent connections and sessions
 pub struct SessionManager {
@@ -17,7 +17,6 @@ pub struct SessionManager {
 /// Handle to a connected agent
 struct AgentHandle {
     transport: Arc<StdioTransport>,
-    agent_info: Option<AgentInfo>,
     sessions: Vec<String>,
     _notification_task: tokio::task::JoinHandle<()>,
 }
@@ -186,7 +185,6 @@ impl SessionManager {
         // Store handle
         let handle = AgentHandle {
             transport,
-            agent_info: agent_info.clone(),
             sessions: Vec::new(),
             _notification_task: notification_task,
         };

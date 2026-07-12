@@ -1,6 +1,6 @@
 pub mod modules;
 
-use modules::{acp, fs, git, history, lsp, net, pty, secrets, shell, workspace};
+use modules::{acp, fs, git, history, lsp, pty, secrets, shell, workspace};
 use std::sync::Mutex;
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 #[cfg(target_os = "macos")]

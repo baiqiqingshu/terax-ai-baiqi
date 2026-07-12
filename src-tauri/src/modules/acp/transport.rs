@@ -31,7 +31,6 @@ pub struct StdioTransport {
     stdin_tx: mpsc::UnboundedSender<String>,
     next_id: AtomicU64,
     pending: Arc<Mutex<HashMap<u64, oneshot::Sender<JsonRpcResponse>>>>,
-    notification_tx: mpsc::UnboundedSender<JsonRpcResponse>,
     pub agent_info: Arc<Mutex<Option<AgentInfo>>>,
 }
 
@@ -153,7 +152,6 @@ impl StdioTransport {
             stdin_tx,
             next_id: AtomicU64::new(1),
             pending,
-            notification_tx,
             agent_info: Arc::new(Mutex::new(None)),
         };
 
