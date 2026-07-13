@@ -242,7 +242,7 @@ jobs:
         if: matrix.platform == 'windows-latest'
         shell: pwsh
         run: |
-          pnpm tauri build --bundles none
+          pnpm tauri build --no-bundle
           $exe = 'src-tauri/target/release/aterax.exe'
           Get-Item -LiteralPath $exe -ErrorAction Stop | Out-Null
           $panicLog = Join-Path $env:LOCALAPPDATA 'app.crynta.aterax\logs\startup-panic.log'
@@ -346,8 +346,8 @@ jobs:
             test ! -e "squashfs-root/usr/lib/$lib" \
               || { echo "lib still present after repack: $lib"; exit 1; }
           done
-          test -x squashfs-root/usr/bin/terax \
-            || { echo "terax binary missing from repacked AppImage"; exit 1; }
+          test -x squashfs-root/usr/bin/aterax \
+            || { echo "aterax binary missing from repacked AppImage"; exit 1; }
           popd >/dev/null
 
           cp "$WORK/$BASENAME" "$APPIMAGE"
