@@ -139,7 +139,6 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
-        .manage(acp::commands::AcpState::default())
         .setup(|_app| {
             // macOS skips parent() for the settings window, so tie its lifecycle
             // to the main window here instead. Other platforms keep parent().
@@ -158,9 +157,9 @@ pub fn run() {
                 });
             }
 
-            // Start ACP event forwarding
-            let acp_state = _app.state::<acp::commands::AcpState>();
+            let acp_state = acp::commands::AcpState::default();
             acp::commands::start_event_forwarding(_app.handle(), &acp_state);
+            _app.manage(acp_state);
 
             Ok(())
         })
