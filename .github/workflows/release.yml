@@ -78,6 +78,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Smoke test Windows executable
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          pnpm tauri build --bundles none
+          $exe = 'src-tauri/target/release/aterax.exe'
+          Get-Item -LiteralPath $exe -ErrorAction Stop | Out-Null
+          $panicLog = Join-Path $env:LOCALAPPDATA 'app.crynta.aterax\logs\startup-panic.log'
+          Remove-Item -LiteralPath $panicLog -Force -ErrorAction SilentlyContinue
+          $process = Start-Process -FilePath $exe -ArgumentList (Get-Location).Path -PassThru
+          Start-Sleep -Seconds 5
+          Get-Process -Id $process.Id -ErrorAction Stop | Out-Null
+          Stop-Process -Id $process.Id -Force
+          if (Test-Path $panicLog) { throw (Get-Content -Raw $panicLog) }
+
       - id: tauri
         uses: tauri-apps/tauri-action@v1
         env:
