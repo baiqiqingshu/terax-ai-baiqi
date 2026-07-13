@@ -45,7 +45,12 @@ fn show_startup_failure() {
         .chain(std::iter::once(0))
         .collect();
     unsafe {
-        MessageBoxW(0, message.as_ptr(), title.as_ptr(), MB_ICONERROR | MB_OK);
+        MessageBoxW(
+            std::ptr::null_mut(),
+            message.as_ptr(),
+            title.as_ptr(),
+            MB_ICONERROR | MB_OK,
+        );
     }
 }
 
