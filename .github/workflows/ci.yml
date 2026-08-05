@@ -353,7 +353,28 @@ jobs:
           cp "$WORK/$BASENAME" "$APPIMAGE"
 
           rm -f "$APPIMAGE.sig"
-          pnpm tauri signer sign "$APPIMAGE"
+          SIGNING_KEY_FILE=$(mktemp)
+          DECODED_KEY_FILE=$(mktemp)
+          trap 'rm -f "$SIGNING_KEY_FILE" "$DECODED_KEY_FILE"' EXIT
+
+          RAW_KEY=$(printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" | tr -d '\r')
+          COMPACT_KEY=$(printf '%s' "$RAW_KEY" | tr -d '[:space:]')
+
+          if printf '%s' "$COMPACT_KEY" | base64 --decode > "$DECODED_KEY_FILE" 2>/dev/null \
+            && grep -aq '^untrusted comment: rsign .*secret key' "$DECODED_KEY_FILE"; then
+            printf '%s' "$COMPACT_KEY" > "$SIGNING_KEY_FILE"
+          elif printf '%s' "$RAW_KEY" | grep -q '^untrusted comment: rsign .*secret key'; then
+            printf '%s' "$RAW_KEY" | base64 -w0 > "$SIGNING_KEY_FILE"
+          elif test -s "$DECODED_KEY_FILE"; then
+            printf 'untrusted comment: rsign encrypted secret key\n%s\n' "$COMPACT_KEY" \
+              | base64 -w0 > "$SIGNING_KEY_FILE"
+          else
+            echo "TAURI_SIGNING_PRIVATE_KEY is not a valid Tauri signing key"
+            exit 1
+          fi
+
+          unset TAURI_SIGNING_PRIVATE_KEY
+          pnpm tauri signer sign --private-key-path "$SIGNING_KEY_FILE" "$APPIMAGE"
 
           TAG="${GITHUB_REF_NAME}"
           gh release upload "$TAG" "$APPIMAGE" "$APPIMAGE.sig" \
